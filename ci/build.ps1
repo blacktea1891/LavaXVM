@@ -28,6 +28,9 @@ try {
 using System;
 using System.Runtime.InteropServices;
 public static class LvmWindow {
+  public delegate bool EnumProc(IntPtr hwnd, IntPtr param);
+  [DllImport("user32.dll")] public static extern bool EnumWindows(EnumProc callback, IntPtr param);
+  [DllImport("user32.dll", CharSet=CharSet.Ansi)] public static extern int GetClassName(IntPtr hwnd, System.Text.StringBuilder text, int count);
   [DllImport("user32.dll", CharSet=CharSet.Ansi)] public static extern IntPtr FindWindow(string cls, string title);
   [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint pid);
   [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hwnd, uint msg, IntPtr wp, IntPtr lp);
@@ -45,7 +48,22 @@ public static class LvmWindow {
       if ($hwnd -ne [IntPtr]::Zero) { [void][LvmWindow]::GetWindowThreadProcessId($hwnd,[ref]$owner) }
       if ($owner -eq $p.Id) { $ready = $true; break }
     }
-    if (!$ready) { throw 'No main window within 10 seconds' }
+    if (!$ready) {
+      $script:foundWindow = [IntPtr]::Zero
+      [LvmWindow]::EnumWindows({ param($w,$unused)
+        [uint32]$wpid=0
+        [void][LvmWindow]::GetWindowThreadProcessId($w,[ref]$wpid)
+        if ($wpid -eq $p.Id) {
+          $name = [System.Text.StringBuilder]::new(256)
+          [void][LvmWindow]::GetClassName($w,$name,256)
+          Write-Host "Process window: $w class=$name"
+          if ($name.ToString() -eq 'MyLvmClass') { $script:foundWindow=$w }
+        }
+        return $true
+      },[IntPtr]::Zero) | Out-Null
+      $hwnd=$script:foundWindow
+      if ($hwnd -eq [IntPtr]::Zero) { throw 'No main window within 10 seconds' }
+    }
     "PASS: GUI class MyLvmClass created; process alive; PID=$($p.Id)" | Tee-Object -FilePath dist/startup-check.txt
     if (![LvmWindow]::PostMessage($hwnd,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)) { throw 'WM_CLOSE failed' }
     if (!$p.WaitForExit(5000)) { throw 'GUI did not exit after close' }

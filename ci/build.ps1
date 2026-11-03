@@ -16,7 +16,7 @@ try {
   if ($LASTEXITCODE) { throw 'Resource compilation failed' }
   # Match LVM.vcproj Release: C, ANSI/GBK, /O2 /Ob1 /GF /Gy /MT, Windows subsystem, winmm.
   $sources = @('cheat.c','check.c','filelist.c','lava.c','main.c','message.c','py2gb.c','screen.c')
-  & cl.exe /nologo /TC /O2 /Ob1 /GF /Gy /MT /W3 /DWIN32 /DNDEBUG /D_WINDOWS /D_CRT_SECURE_NO_WARNINGS /source-charset:.936 /execution-charset:.936 /Fobuild/ /Fedist/LavaXVM/LVM.exe $sources build/LVM.res /link /SUBSYSTEM:WINDOWS /MACHINE:X86 /INCREMENTAL:NO user32.lib gdi32.lib comdlg32.lib advapi32.lib winmm.lib
+  & cl.exe /nologo /TC /O2 /Ob1 /GF /Gy /MT /W3 /DWIN32 /DNDEBUG /D_WINDOWS /D_CRT_SECURE_NO_WARNINGS /source-charset:.936 /execution-charset:.936 /Fobuild/ /Fedist/LavaXVM/LVM.exe $sources /link build/LVM.res /SUBSYSTEM:WINDOWS /MACHINE:X86 /INCREMENTAL:NO user32.lib gdi32.lib comdlg32.lib advapi32.lib winmm.lib
   if ($LASTEXITCODE) { throw 'C compilation/link failed' }
   & dumpbin.exe /headers dist/LavaXVM/LVM.exe | Out-File dist/pe-headers.txt
   & dumpbin.exe /dependents dist/LavaXVM/LVM.exe | Tee-Object -FilePath dist/dependencies.txt
@@ -46,3 +46,4 @@ try {
   Compress-Archive -Path dist/LavaXVM -DestinationPath dist/LavaXVM-Release-x86.zip -Force
   Get-FileHash dist/LVM.exe,dist/LavaXVM-Release-x86.zip -Algorithm SHA256 | Format-Table -AutoSize | Out-File dist/SHA256.txt
 } finally { Stop-Transcript }
+

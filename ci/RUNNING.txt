@@ -1,0 +1,25 @@
+LavaXVM / LVM.exe - Release x86
+
+Source: https://github.com/leesoft-mirage/LavaXVM
+Upstream commit: 4e459e5e1745e778fab1f36f5b2ba6fd4009e968
+License: MIT, copyright (c) 2015 Li Jie; see LICENSE.txt.
+
+Native Windows GUI application, built with MSVC on windows-2022.
+Use on Windows 10/11 x64 (WoW64), or compatible x86 Windows.
+C runtime is statically linked (/MT); no .NET, Python, or separate VC runtime required.
+Fonts, icon, menus and keyboard graphics are compiled into LVM.exe.
+Extract to a writable folder and run LVM.exe. It creates lavax.ini, Bmp and Cheat
+beside the executable. Use File > Open LavaX to load your own compatible LAV/PAC
+program. No game ROM/program is supplied by this repository or this package.
+This is a legacy ANSI application: Chinese UI/path behavior may require the
+Windows system locale for non-Unicode programs to be Chinese (Simplified, China).
+Prefer a short ASCII path if file opening fails.
+
+The upstream project targets VS2008 Win32 only and uses x86 inline assembly.
+No x64 port was attempted. x86 binaries run on x64 Windows.
+Modern build adaptation only: direct MSVC/RC invocation preserving original
+Release settings, plus an afxres.h compatibility header in the build folder.
+Upstream application sources remain unchanged.
+
+Basic verification checks PE architecture, imported DLLs, main-window creation,
+and clean exit. It does not validate compatibility with all LavaX programs.

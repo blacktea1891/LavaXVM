@@ -24,6 +24,15 @@ try {
   Copy-Item ci/RUNNING.txt dist/LavaXVM/README.txt
   git rev-parse HEAD | Set-Content dist/source-commit.txt
   $bin = (Resolve-Path dist/LavaXVM).Path
+  Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+public static class LvmWindow {
+  [DllImport("user32.dll", CharSet=CharSet.Ansi)] public static extern IntPtr FindWindow(string cls, string title);
+  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint pid);
+  [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hwnd, uint msg, IntPtr wp, IntPtr lp);
+}
+'@
   $p = Start-Process -FilePath "$bin/LVM.exe" -WorkingDirectory $bin -WindowStyle Hidden -PassThru
   try {
     $ready = $false
@@ -31,11 +40,14 @@ try {
       Start-Sleep -Milliseconds 500
       $p.Refresh()
       if ($p.HasExited) { throw "Startup failed: exit $($p.ExitCode)" }
-      if ($p.MainWindowHandle -ne 0) { $ready = $true; break }
+      $hwnd = [LvmWindow]::FindWindow('MyLvmClass', $null)
+      [uint32]$owner = 0
+      if ($hwnd -ne [IntPtr]::Zero) { [void][LvmWindow]::GetWindowThreadProcessId($hwnd,[ref]$owner) }
+      if ($owner -eq $p.Id) { $ready = $true; break }
     }
     if (!$ready) { throw 'No main window within 10 seconds' }
-    "PASS: GUI created; process alive; title=$($p.MainWindowTitle)" | Tee-Object -FilePath dist/startup-check.txt
-    if (!$p.CloseMainWindow()) { throw 'CloseMainWindow failed' }
+    "PASS: GUI class MyLvmClass created; process alive; PID=$($p.Id)" | Tee-Object -FilePath dist/startup-check.txt
+    if (![LvmWindow]::PostMessage($hwnd,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)) { throw 'WM_CLOSE failed' }
     if (!$p.WaitForExit(5000)) { throw 'GUI did not exit after close' }
     if ($p.ExitCode -ne 0) { throw "Exit code $($p.ExitCode)" }
     'PASS: window closed cleanly, exit 0' | Add-Content dist/startup-check.txt
